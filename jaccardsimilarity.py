@@ -3,6 +3,7 @@ from tqdm import tqdm
 from scipy.sparse import csc_array
 import collections
 import itertools
+import matplotlib.pyplot as plt
 
 def GetData(filename):
     ''' Reads the user-movie data from a .npy file and returns it as a sparse matrix '''
@@ -71,34 +72,45 @@ def JaccardSimilarity(arr1, arr2):
 def FindSimilarities(csc_user_movie_data, candidate_pairs):
     ''' Finds the Jaccard similarity between all candidate pairs '''
 
-    similarities_real = [] # the actual Jaccard similarity, calculated from the original data
     similar_pairs = set()
+    real_sims = []
+
+    with open('similar_pairs.txt','w') as f:
+        f.write('# pair1,pair2\n') # empties file and writes header
+
+    csc_user_movie_data = csc_user_movie_data.tocsr() # convert to csr format for faster slicing
 
     for pair in tqdm(candidate_pairs):
         similarity_real = JaccardSimilarity( csc_user_movie_data[[pair[0]],:].nonzero()[1], csc_user_movie_data[[pair[1]],:].nonzero()[1] )
 
         if similarity_real > 0.5:
-            print(pair, similarity_real)
-            # similarities_real.append(similarity_real)
             sorted_pair = tuple(sorted(pair))
             # write to text file
             with open('similar_pairs.txt', 'a') as f:
                 f.write(str(sorted_pair[0]+1) + ',' + str(sorted_pair[1]+1) + '\n')
+            similar_pairs.add(sorted_pair)
+            real_sims.append(similarity_real)
 
-    return np.array(similarities_real), similar_pairs
+    plt.plot(np.arange(len(real_sims)), np.sort(real_sims),'.')
+    plt.show()
+
+
+    return similar_pairs
 
 
 
 if __name__ == '__main__':
     np.random.seed(43)
 
-    filename = 'user_movie_rating.npy'
+    filename = 'C:/Users/stijn/Documents/jaar 2/AIDM/assignment 2/user_movie_rating.npy'
     csc_user_movie_data = GetData(filename)
 
+    # optimise number of permutations and bands with a loop since this is fast anyway.
     num_permutations = 150
     minhash_matrix = MinHash(csc_user_movie_data, num_permutations)
 
-    candidate_pairs = fastCandidatePairs(minhash_matrix, b=13)
+    candidate_pairs = fastCandidatePairs(minhash_matrix, b=20) 
     print("Number of candidate pairs: {} with {} users".format(len(candidate_pairs), minhash_matrix.shape[1]))
 
-    similarities_real, similar_pairs = FindSimilarities(csc_user_movie_data, candidate_pairs)
+    similar_pairs = FindSimilarities(csc_user_movie_data, candidate_pairs)
+    print("Number of similar pairs: {}".format(len(similar_pairs)))
