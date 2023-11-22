@@ -69,14 +69,14 @@ def JaccardSimilarity(arr1, arr2):
     union = np.union1d(arr1, arr2)
     return len(intersection) / len(union)
 
-def FindSimilarities(csc_user_movie_data, candidate_pairs):
+def FindSimilarities(csc_user_movie_data, candidate_pairs, txtfile='similar_pairs.txt'):
     ''' Finds the Jaccard similarity between all candidate pairs '''
 
     similar_pairs = set()
     real_sims = []
 
-    with open('similar_pairs.txt','w') as f:
-        f.write('# pair1,pair2\n') # empties file and writes header
+    with open(txtfile,'w') as f:
+        f.write('') # empties file 
 
     csc_user_movie_data = csc_user_movie_data.tocsr() # convert to csr format for faster slicing
 
@@ -86,7 +86,7 @@ def FindSimilarities(csc_user_movie_data, candidate_pairs):
         if similarity_real > 0.5:
             sorted_pair = tuple(sorted(pair))
             # write to text file
-            with open('similar_pairs.txt', 'a') as f:
+            with open(txtfile, 'a') as f:
                 f.write(str(sorted_pair[0]+1) + ',' + str(sorted_pair[1]+1) + '\n')
             similar_pairs.add(sorted_pair)
             real_sims.append(similarity_real)
@@ -94,8 +94,9 @@ def FindSimilarities(csc_user_movie_data, candidate_pairs):
     plt.plot(np.arange(len(real_sims)), np.sort(real_sims),'.')
     plt.show()
 
+    print("Number of similar pairs: {}".format(len(real_sims)))
 
-    return similar_pairs
+    return candidate_pairs
 
 
 
@@ -106,11 +107,10 @@ if __name__ == '__main__':
     csc_user_movie_data = GetData(filename)
 
     # optimise number of permutations and bands with a loop since this is fast anyway.
-    num_permutations = 150
+    num_permutations = 150 
     minhash_matrix = MinHash(csc_user_movie_data, num_permutations)
 
     candidate_pairs = fastCandidatePairs(minhash_matrix, b=20) 
     print("Number of candidate pairs: {} with {} users".format(len(candidate_pairs), minhash_matrix.shape[1]))
 
     similar_pairs = FindSimilarities(csc_user_movie_data, candidate_pairs)
-    print("Number of similar pairs: {}".format(len(similar_pairs)))
