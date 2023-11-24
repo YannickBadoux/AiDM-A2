@@ -45,9 +45,6 @@ def FindCandidatePairs(minhash_matrix, b):
     permutations, users = minhash_matrix.shape
     buckets = collections.defaultdict(set) # dictionary with empty sets as default values; sets are used to avoid duplicates
     bands = np.array_split(minhash_matrix, b, axis=0) # split the matrix into b bands
-
-    r = permutations//b
-    print(f'The cutoff is {(1/b)**(1/r):.3f}')
     
     for i,band in enumerate(bands):
         for j in range(users):
@@ -59,7 +56,8 @@ def FindCandidatePairs(minhash_matrix, b):
     for bucket in buckets.values():
         if len(bucket) > 1: # buckets with 1 user have no pairs
             for pair in itertools.combinations(bucket, 2):
-                candidate_pairs.add(pair)
+                if (minhash_matrix[:,pair[0]] == minhash_matrix[:,pair[1]]).sum() / permutations > 0.3: # check if the signatures are largely
+                    candidate_pairs.add(pair)
 
     return candidate_pairs
 
@@ -69,11 +67,8 @@ def JaccardSimilarity(arr1, arr2):
     union = np.union1d(arr1, arr2)
     return len(intersection) / len(union)
 
-def FindSimilarities(csc_user_movie_data, candidate_pairs, txtfile='similar_pairs.txt'):
+def FindSimilarities(csc_user_movie_data, candidate_pairs, txtfile='js.txt'):
     ''' Finds the Jaccard similarity between all candidate pairs '''
-
-    similar_pairs = set()
-    real_sims = []
 
     with open(txtfile,'w') as f:
         f.write('') # empties file 
@@ -88,51 +83,18 @@ def FindSimilarities(csc_user_movie_data, candidate_pairs, txtfile='similar_pair
             # write to text file
             with open(txtfile, 'a') as f:
                 f.write(str(sorted_pair[0]+1) + ',' + str(sorted_pair[1]+1) + '\n')
-            similar_pairs.add(sorted_pair)
-            real_sims.append(similarity_real)
-
-    print("Number of similar pairs: {}".format(len(real_sims)))
-
-    return real_sims, candidate_pairs
 
 
 
 if __name__ == '__main__':
-    np.random.seed(21)
+    np.random.seed(41)
 
     filename = 'C:/Users/stijn/Documents/jaar 2/AIDM/assignment 2/user_movie_rating.npy'
     csc_user_movie_data = GetData(filename)
 
+    num_permutations = 182
+    minhash_matrix = MinHash(csc_user_movie_data, num_permutations)
 
-    for num_permutations in [105,154,182]:
-        simsplot = []
-        for i in range(3): # run 3 times to get average results
-            simsplot.append([])
-            # optimise number of permutations and bands with a loop since this is fast anyway.
-            num_permutations = num_permutations
-            minhash_matrix = MinHash(csc_user_movie_data, num_permutations)
-
-            candidate_pairs = FindCandidatePairs(minhash_matrix, b=num_permutations//7)  # b=20
-            print("Number of candidate pairs: {} with {} users".format(len(candidate_pairs), minhash_matrix.shape[1]))
-
-            real_sims, similar_pairs = FindSimilarities(csc_user_movie_data, candidate_pairs)
-            simsplot[i].append(real_sims)
-        
-        lengths = []
-        simsplot_sorted = []
-        for i, simlist in enumerate(simsplot):
-            simsplot[i] = np.array(simlist).flatten()
-            lengths.append(len(simsplot))
-        arg = np.argsort(lengths)
-        
-        for i in arg:
-            simsplot_sorted.append(simsplot[i])
-
-        plt.figure(figsize=(8,6))
-        plt.boxplot(simsplot_sorted, vert=False, positions=(0.5,1,1.5))
-        plt.yticks([0.5,1,1.5],["N$_{pairs}$ = "+str(len(simsplot_sorted[i])) for i in range(len(simsplot_sorted))], fontsize=16)
-        plt.ylim([0.3,1.7])
-        plt.xticks(fontsize=14)
-        plt.xlabel('Jaccard similarity', fontsize=16)
-        plt.title(f'Jaccard Similarity Distribution using {num_permutations} signatures', fontsize=18)
-        plt.savefig(f'jaccard_{num_permutations}.pdf', bbox_inches='tight')	
+    candidate_pairs = FindCandidatePairs(minhash_matrix, b=num_permutations//7)  
+    print('Number of candidate pairs: ', len(candidate_pairs))
+    FindSimilarities(csc_user_movie_data, candidate_pairs)
