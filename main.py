@@ -10,7 +10,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', help='Similarity Measure', type=str, choices=['js', 'cs', 'dcs'])
     args = parser.parse_args()
 
-    print(f'Running {args.m} with seed {args.s}')
+    print(f'Running {args.m} with seed {args.s}...')
     # run the specified similarity measure
     if args.m == 'cs' or args.m == 'dcs':
         cs.main(args)

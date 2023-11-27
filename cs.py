@@ -85,7 +85,7 @@ def FindSimilarPairs(data, pairs, end, measure):
                 f.write(str(sorted((u1+1, u2+1)))+'\n')
             sim_pairs.append((u1, u2))
             sims.append(sim)
-                
+    print(f'Found {len(sim_pairs)} similar pairs')
     return (sims, sim_pairs)
 
 
@@ -102,8 +102,11 @@ def main(args):
         data = ImportData(args.d, args.m)
 
         #Parameters
-        nsig = 144
         nrow = 18
+        if args.m == 'dcs':
+            nsig = 180
+        elif args.m == 'cs':
+            nsig = 144
 
         #time
         start = time.time()
@@ -117,7 +120,7 @@ def main(args):
 
         #Creating the buckets
         bucket_dict = MakeBuckets(sig_bin)
-        cand_pairs = CandidatePairs(bucket_dict)
+        cand_pairs = CandidatePairs(bucket_dict, sig)
 
         #Finding similar pairs
         FindSimilarPairs(data, cand_pairs, end, args.m)
