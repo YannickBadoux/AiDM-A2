@@ -56,7 +56,7 @@ def FindCandidatePairs(minhash_matrix, b):
     for bucket in buckets.values():
         if len(bucket) > 1: # buckets with 1 user have no pairs
             for pair in itertools.combinations(bucket, 2):
-                if (minhash_matrix[:,pair[0]] == minhash_matrix[:,pair[1]]).sum() / permutations > 0.3: # check if the signatures are largely
+                if (minhash_matrix[:,pair[0]] == minhash_matrix[:,pair[1]]).sum() / permutations > 0.49: # filter out pairs with low approximate similarity
                     candidate_pairs.add(pair)
 
     return candidate_pairs
@@ -84,17 +84,14 @@ def FindSimilarities(csc_user_movie_data, candidate_pairs, txtfile='js.txt'):
             with open(txtfile, 'a') as f:
                 f.write(str(sorted_pair[0]+1) + ',' + str(sorted_pair[1]+1) + '\n')
 
-
-
 if __name__ == '__main__':
     np.random.seed(41)
 
     filename = 'C:/Users/stijn/Documents/jaar 2/AIDM/assignment 2/user_movie_rating.npy'
     csc_user_movie_data = GetData(filename)
 
-    num_permutations = 182
+    num_permutations = 150
     minhash_matrix = MinHash(csc_user_movie_data, num_permutations)
 
-    candidate_pairs = FindCandidatePairs(minhash_matrix, b=num_permutations//7)  
-    print('Number of candidate pairs: ', len(candidate_pairs))
+    candidate_pairs = FindCandidatePairs(minhash_matrix, b=num_permutations//5)  
     FindSimilarities(csc_user_movie_data, candidate_pairs)
